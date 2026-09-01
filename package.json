@@ -1,0 +1,46 @@
+{
+  "name": "auto-compact",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Background compaction for Pi using a dedicated model",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "compaction"
+  ],
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/compact.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "0.84.4",
+    "@earendil-works/pi-coding-agent": "0.84.4",
+    "@types/node": "22.19.19",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csrutil/auto-compact.git"
+  },
+  "homepage": "https://github.com/csrutil/auto-compact#readme",
+  "bugs": {
+    "url": "https://github.com/csrutil/auto-compact/issues"
+  },
+  "license": "MIT"
+}
