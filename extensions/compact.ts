@@ -158,9 +158,12 @@ function prepareBackgroundCompaction(
 }
 
 export default function (pi: ExtensionAPI) {
+  let compactionDurationMs: number | undefined;
+
   const reset = () => {
     job?.controller.abort();
     job = undefined;
+    compactionDurationMs = undefined;
   };
 
   const runCompaction = async (
@@ -174,7 +177,9 @@ export default function (pi: ExtensionAPI) {
       throw new Error(`Compaction model ${PROVIDER}/${MODEL} is unavailable`);
     }
 
-    return compact(
+    compactionDurationMs = undefined;
+    const startedAt = performance.now();
+    const result = await compact(
       preparation,
       model,
       undefined,
@@ -211,6 +216,8 @@ export default function (pi: ExtensionAPI) {
         return stream;
       },
     );
+    compactionDurationMs = performance.now() - startedAt;
+    return result;
   };
 
   pi.on("agent_end", (_event, ctx) => {
@@ -322,7 +329,37 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("session_compact", () => reset());
+  pi.on("session_compact", (event, ctx) => {
+    const durationMs = compactionDurationMs;
+    reset();
+    if (!event.fromExtension) return;
+
+    const usage = event.compactionEntry.usage;
+    const cost = usage
+      ? usage.cost.total === 0
+        ? "$0.00"
+        : usage.cost.total < 0.01
+          ? `$${usage.cost.total.toFixed(4)}`
+          : `$${usage.cost.total.toFixed(2)}`
+      : "cost unavailable";
+    const tokens = usage
+      ? `${usage.totalTokens.toLocaleString("en-US")} tokens`
+      : "usage unavailable";
+    const duration =
+      durationMs === undefined
+        ? "duration unavailable"
+        : `duration ${(durationMs / 1000).toFixed(2)}s`;
+    const completedAt = new Date().toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    ctx.ui.notify(
+      `Compacted successfully at ${completedAt} with ${PROVIDER}/${MODEL}:${THINKING_LEVEL} (${tokens}, ${cost}, ${duration})`,
+      "info",
+    );
+  });
   pi.on("session_start", () => reset());
   pi.on("session_shutdown", () => reset());
 }

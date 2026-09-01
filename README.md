@@ -4,6 +4,8 @@ A [Pi package](https://github.com/earendil-works/pi/blob/main/packages/coding-ag
 that prepares compaction in the background with a dedicated model. When Pi
 needs to compact, the extension uses the prepared result if it still applies to
 the active branch. Otherwise, it runs compaction with the configured model.
+After compaction succeeds, it reports the model, thinking level, token usage,
+cost, and elapsed compaction time.
 
 ## Install
 

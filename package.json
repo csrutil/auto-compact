@@ -1,6 +1,6 @@
 {
   "name": "auto-compact",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Background compaction for Pi using a dedicated model",
   "type": "module",
@@ -14,7 +14,8 @@
     "README.md"
   ],
   "scripts": {
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit && npm test",
+    "test": "node --experimental-strip-types --test test/*.test.mjs"
   },
   "pi": {
     "extensions": [
