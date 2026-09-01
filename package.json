@@ -1,7 +1,6 @@
 {
-  "name": "auto-compact",
+  "name": "@tsaokoming/auto-compact",
   "version": "0.1.1",
-  "private": true,
   "description": "Background compaction for Pi using a dedicated model",
   "type": "module",
   "keywords": [
@@ -15,6 +14,7 @@
   ],
   "scripts": {
     "check": "tsc --noEmit && npm test",
+    "prepublishOnly": "npm run check",
     "test": "node --experimental-strip-types --test test/*.test.mjs"
   },
   "pi": {
@@ -42,6 +42,9 @@
   "homepage": "https://github.com/csrutil/auto-compact#readme",
   "bugs": {
     "url": "https://github.com/csrutil/auto-compact/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "license": "MIT"
 }

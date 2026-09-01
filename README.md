@@ -1,5 +1,7 @@
 # auto-compact
 
+[![npm version](https://img.shields.io/npm/v/%40tsaokoming%2Fauto-compact)](https://www.npmjs.com/package/@tsaokoming/auto-compact)
+
 A [Pi package](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
 that prepares compaction in the background with a dedicated model. When Pi
 needs to compact, the extension uses the prepared result if it still applies to
@@ -9,16 +11,16 @@ cost, and elapsed compaction time.
 
 ## Install
 
-Install from GitHub:
+Install from npm:
 
 ```sh
-pi install https://github.com/csrutil/auto-compact
+pi install npm:@tsaokoming/auto-compact
 ```
 
 To try it for one session without installing it:
 
 ```sh
-pi -e git:github.com/csrutil/auto-compact
+pi -e npm:@tsaokoming/auto-compact
 ```
 
 Remove or disable another copy of `compact.ts` before loading this package so
