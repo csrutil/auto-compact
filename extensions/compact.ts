@@ -29,9 +29,15 @@ interface Settings {
 const settings = JSON.parse(
   readFileSync(join(getAgentDir(), "settings.json"), "utf8"),
 ) as Settings;
+if (!settings.compaction) {
+  throw new Error(
+    'auto-compact requires a "compaction" section in settings.json',
+  );
+}
 const {
   provider: PROVIDER,
   model: MODEL,
+  enabled: ENABLED = true,
   thinkingLevel: THINKING_LEVEL = "high",
   backgroundThreshold: BACKGROUND_THRESHOLD,
   ...COMPACTION_SETTINGS
@@ -153,11 +159,13 @@ function prepareBackgroundCompaction(
     tokensBefore,
     previousSummary: previousCompaction?.summary,
     fileOps,
-    settings: COMPACTION_SETTINGS,
+    settings: { ...COMPACTION_SETTINGS, enabled: ENABLED },
   };
 }
 
 export default function (pi: ExtensionAPI) {
+  if (!ENABLED) return;
+
   let compactionDurationMs: number | undefined;
 
   const reset = () => {
@@ -297,7 +305,7 @@ export default function (pi: ExtensionAPI) {
     if (cacheIsUsable) {
       const result = cachedJob.result ?? (await cachedJob.promise);
       if (result) {
-        job = undefined;
+        if (job === cachedJob) job = undefined;
         return { compaction: result };
       }
     }

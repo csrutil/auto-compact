@@ -1,0 +1,11 @@
+{
+	"compaction": {
+		"enabled": false,
+		"reserveTokens": 16384,
+		"keepRecentTokens": 250,
+		"provider": "test-provider",
+		"model": "test-model",
+		"thinkingLevel": "high",
+		"backgroundThreshold": 80
+	}
+}
