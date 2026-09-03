@@ -50,6 +50,10 @@ fields to the existing `compaction` object in `~/.pi/agent/settings.json`:
   values are `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`.
 - `backgroundThreshold` is the context-window percentage at which background
   compaction begins.
+- `enabled` toggles this extension. When it is `false`, the section is
+  missing, or required fields are absent, the extension stays inactive —
+  it notifies once on session start and Pi's standard compaction behavior
+  applies.
 - The remaining fields use Pi's standard compaction behavior.
 
 Pick a model from Pi's model registry. Reload Pi after changing the settings or
