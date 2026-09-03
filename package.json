@@ -1,6 +1,6 @@
 {
   "name": "@tsaokoming/auto-compact",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Background compaction for Pi using a dedicated model",
   "type": "module",
   "keywords": [
