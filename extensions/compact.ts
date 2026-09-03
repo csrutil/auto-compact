@@ -4,6 +4,7 @@ import {
 } from "@earendil-works/pi-ai";
 import {
   compact,
+  DEFAULT_COMPACTION_SETTINGS,
   type ExtensionAPI,
   type ExtensionContext,
   findCutPoint,
@@ -15,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 interface Settings {
-  compaction: {
+  compaction?: {
     enabled: boolean;
     reserveTokens: number;
     keepRecentTokens: number;
@@ -29,19 +30,14 @@ interface Settings {
 const settings = JSON.parse(
   readFileSync(join(getAgentDir(), "settings.json"), "utf8"),
 ) as Settings;
-if (!settings.compaction) {
-  throw new Error(
-    'auto-compact requires a "compaction" section in settings.json',
-  );
+function inactiveReason(): string | undefined {
+  const c = settings.compaction;
+  if (!c) return 'no "compaction" section in settings.json';
+  if (!c.enabled) return "compaction is disabled in settings.json";
+  if (!c.provider || !c.model)
+    return "compaction provider/model are not configured";
+  return undefined;
 }
-const {
-  provider: PROVIDER,
-  model: MODEL,
-  enabled: ENABLED = true,
-  thinkingLevel: THINKING_LEVEL = "high",
-  backgroundThreshold: BACKGROUND_THRESHOLD,
-  ...COMPACTION_SETTINGS
-} = settings.compaction;
 
 interface CompactionJob {
   sessionId: string;
@@ -57,6 +53,7 @@ let job: CompactionJob | undefined;
 function prepareBackgroundCompaction(
   entries: SessionEntry[],
   tokensBefore: number,
+  compactionSettings: NonNullable<Settings["compaction"]>,
 ): Parameters<typeof compact>[0] | undefined {
   if (entries.at(-1)?.type === "compaction") return;
 
@@ -87,7 +84,7 @@ function prepareBackgroundCompaction(
     entries,
     boundaryStart,
     entries.length,
-    COMPACTION_SETTINGS.keepRecentTokens,
+    compactionSettings.keepRecentTokens,
   );
   const firstKeptEntry = entries[cutPoint.firstKeptEntryIndex];
   if (!firstKeptEntry?.id) return;
@@ -159,12 +156,24 @@ function prepareBackgroundCompaction(
     tokensBefore,
     previousSummary: previousCompaction?.summary,
     fileOps,
-    settings: { ...COMPACTION_SETTINGS, enabled: ENABLED },
+    settings: compactionSettings,
   };
 }
 
 export default function (pi: ExtensionAPI) {
-  if (!ENABLED) return;
+  const reason = inactiveReason();
+  const section = settings.compaction;
+  if (reason || !section) {
+    pi.on("session_start", (_event, ctx) => {
+      ctx.ui.notify(`auto-compact inactive: ${reason}`, "info");
+    });
+    return;
+  }
+  const compaction = {
+    ...DEFAULT_COMPACTION_SETTINGS,
+    ...section,
+    thinkingLevel: section.thinkingLevel ?? "high",
+  };
 
   let compactionDurationMs: number | undefined;
 
@@ -180,9 +189,14 @@ export default function (pi: ExtensionAPI) {
     customInstructions?: string,
     signal?: AbortSignal,
   ) => {
-    const model = ctx.modelRegistry.find(PROVIDER, MODEL);
+    const model = ctx.modelRegistry.find(
+      compaction.provider,
+      compaction.model,
+    );
     if (!model) {
-      throw new Error(`Compaction model ${PROVIDER}/${MODEL} is unavailable`);
+      throw new Error(
+        `Compaction model ${compaction.provider}/${compaction.model} is unavailable`,
+      );
     }
 
     compactionDurationMs = undefined;
@@ -194,7 +208,7 @@ export default function (pi: ExtensionAPI) {
       undefined,
       customInstructions,
       signal,
-      THINKING_LEVEL,
+      compaction.thinkingLevel,
       async (requestModel, context, options) => {
         const response = await ctx.modelRegistry.complete(
           requestModel,
@@ -234,7 +248,7 @@ export default function (pi: ExtensionAPI) {
       !usage ||
       usage.tokens === null ||
       usage.percent === null ||
-      usage.percent < BACKGROUND_THRESHOLD
+      usage.percent < compaction.backgroundThreshold
     )
       return;
 
@@ -245,6 +259,7 @@ export default function (pi: ExtensionAPI) {
     const preparation = prepareBackgroundCompaction(
       ctx.sessionManager.getBranch(),
       usage.tokens,
+      compaction,
     );
     if (!preparation) return;
 
@@ -277,7 +292,7 @@ export default function (pi: ExtensionAPI) {
       promise,
     };
     ctx.ui.notify(
-      `Pre-compacting with ${PROVIDER}/${MODEL}:${THINKING_LEVEL}`,
+      `Pre-compacting with ${compaction.provider}/${compaction.model}:${compaction.thinkingLevel}`,
       "info",
     );
   });
@@ -312,7 +327,7 @@ export default function (pi: ExtensionAPI) {
 
     reset();
     ctx.ui.notify(
-      `Compacting with ${PROVIDER}/${MODEL}:${THINKING_LEVEL}`,
+      `Compacting with ${compaction.provider}/${compaction.model}:${compaction.thinkingLevel}`,
       "info",
     );
 
@@ -364,7 +379,7 @@ export default function (pi: ExtensionAPI) {
       hour12: false,
     });
     ctx.ui.notify(
-      `Compacted successfully at ${completedAt} with ${PROVIDER}/${MODEL}:${THINKING_LEVEL} (${tokens}, ${cost}, ${duration})`,
+      `Compacted successfully at ${completedAt} with ${compaction.provider}/${compaction.model}:${compaction.thinkingLevel} (${tokens}, ${cost}, ${duration})`,
       "info",
     );
   });

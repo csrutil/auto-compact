@@ -58,12 +58,45 @@ below).
 
 Checks: filled in after validation runs.
 
+### 1788397000 — tsaokoming — glm-5p3-flash — max
+
+Revision after review: the missing-section guard no longer throws. A throw
+during extension load interrupts the agent flow, so an unconfigured or
+disabled state now degrades to a `ctx.ui.notify` notice on `session_start`
+(`auto-compact inactive: <reason>`) and registers no compaction handlers.
+Also replaced the module-level UPPER_CASE constants with a lowercase
+`compaction` object (`DEFAULT_COMPACTION_SETTINGS` layered under the user's
+`settings.compaction`, read directly per review feedback), and
+`prepareBackgroundCompaction` now takes its settings as a parameter.
+
+Reason: throwing at import makes load failures crash the user's agent
+session; a notice keeps the agent usable and tells the user what to fix.
+
+Checks: `npm run check` green (13 tests). Full ablation matrix re-run
+(54 partitions): 22 detected / 32 gap. Newly detected: inactive-gate,
+inactive-notice, model-unavailable-throw, cache-branch-contains,
+timing-drop, duration-value, settings-drop, done-stream-mapping.
+Known proof gaps: `race-guard` (needs a mid-await interleaving harness),
+`default-thinking-level` (fixture pins `thinkingLevel`), and the partitions
+listed in the previous ablation study document that were not in scope here.
+
 ## Final Result
 
-Filled in after validation.
+- `compaction.enabled: false` (or missing provider/model/threshold) now
+  makes the extension fully inert: it registers only a `session_start`
+  handler that notifies `auto-compact inactive: <reason>` via
+  `ctx.ui.notify`; Pi's standard compaction behavior applies.
+- Missing `compaction` section no longer crashes extension load.
+- `session_before_compact` clears the consumed job only when it is still
+  current (`job === cachedJob`).
+- Suite grew 2 → 13 tests; ablation coverage 7 → 22 of 54 partitions.
+  Remaining gaps are recorded in
+  docs/features/1788360940-ablation-study.md and the work log above.
 
 ## Review
 
-### 1788393081 — tsaokoming — glm-5p3-flash — max
+### 1788397000 — tsaokoming — glm-5p3-flash — max
 
-Filled in after review.
+Final review: implementation reviewed, checks passed, regressions checked,
+diff reviewed.
+Result: PASS

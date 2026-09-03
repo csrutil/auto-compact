@@ -6,9 +6,24 @@ process.env.PI_CODING_AGENT_DIR = fileURLToPath(
 	new URL("./fixtures-missing", import.meta.url),
 );
 
-test("a missing compaction section fails with a clear error", async () => {
-	await assert.rejects(
-		() => import("../extensions/compact.ts"),
-		/"compaction" section/,
+const { default: autoCompact } = await import("../extensions/compact.ts");
+
+test("a missing compaction section stays inactive with a notice", () => {
+	const handlers = new Map();
+	autoCompact({ on: (event, handler) => handlers.set(event, handler) });
+
+	assert.equal(handlers.get("agent_end"), undefined);
+
+	const notifications = [];
+	handlers.get("session_start")(
+		{},
+		{ ui: { notify: (message, level) => notifications.push({ message, level }) } },
+	);
+
+	assert.equal(notifications.length, 1);
+	assert.equal(notifications[0].level, "info");
+	assert.match(
+		notifications[0].message,
+		/auto-compact inactive: no "compaction" section in settings\.json/,
 	);
 });

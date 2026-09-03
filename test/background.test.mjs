@@ -18,6 +18,7 @@ let usage = { tokens: 0, percent: 0 };
 let completion = { stopReason: "stop", content: [], usage: {} };
 let completeCalls = 0;
 let compacts = 0;
+let modelAvailable = true;
 
 const okCompletion = (text) => ({
 	stopReason: "stop",
@@ -57,7 +58,7 @@ function makeCtx({ leafId = "leaf-1", branch = entries } = {}) {
 			getBranch: () => branch,
 		},
 		modelRegistry: {
-			find: () => ({ maxTokens: 8192, reasoning: false }),
+			find: () => (modelAvailable ? { maxTokens: 8192, reasoning: false } : undefined),
 			complete: async () => {
 				completeCalls += 1;
 				return completion;
@@ -112,6 +113,20 @@ test("settled compacts once the leaf advances", () => {
 	assert.equal(compacts, 1);
 });
 
+test("a stale branch falls back to a foreground compaction", async () => {
+	notifications.length = 0;
+	completion = okCompletion("fg summary 2");
+	const event = {
+		customInstructions: undefined,
+		branchEntries: [],
+		preparation: dummyPreparation(),
+		signal: AbortSignal.none,
+	};
+	const result = await handlers.get("session_before_compact")(event, makeCtx());
+	assert.match(result.compaction.summary, /fg summary 2/);
+	assert.ok(lastNotify(/^Compacting with test-provider\/test-model:high$/));
+});
+
 test("an incomplete model response fails loudly and clears the job", async () => {
 	notifications.length = 0;
 	handlers.get("session_start")({}, makeCtx()); // reset job state
@@ -128,7 +143,29 @@ test("an incomplete model response fails loudly and clears the job", async () =>
 	handlers.get("session_start")({}, makeCtx());
 	completion = okCompletion("bg summary");
 	handlers.get("agent_end")({}, makeCtx());
-	await until(() => completeCalls >= 3); // pending attempt + retry job
+	await until(() => completeCalls >= 4); // pending attempt + retry job
+	await flush(20);
+});
+
+test("an unavailable compaction model fails loudly", async () => {
+	notifications.length = 0;
+	handlers.get("session_start")({}, makeCtx());
+	modelAvailable = false;
+	usage = { tokens: 5000, percent: 90 };
+	handlers.get("agent_end")({}, makeCtx());
+	await until(() =>
+		notifications.some(
+			(n) =>
+				n.level === "warning" &&
+				/Compaction model test-provider\/test-model is unavailable/.test(
+					n.message,
+				),
+		),
+	);
+	modelAvailable = true;
+	handlers.get("session_start")({}, makeCtx());
+	handlers.get("agent_end")({}, makeCtx());
+	await until(() => completeCalls >= 5);
 	await flush(20);
 });
 
@@ -153,6 +190,17 @@ test("a matching manual compaction reuses the background result and clears the j
 	assert.ok(lastNotify(/^Pre-compacting with /));
 	await until(() => completeCalls >= callsBefore + 1);
 	await flush(20);
+
+	// the measured duration is reported once compaction is applied
+	notifications.length = 0;
+	handlers.get("session_compact")(
+		{
+			fromExtension: true,
+			compactionEntry: { usage: { totalTokens: 100, cost: { total: 0 } } },
+		},
+		makeCtx(),
+	);
+	assert.ok(lastNotify(/duration \d+\.\d{2}s/));
 });
 
 test("custom instructions fall back to a foreground compaction", async () => {
@@ -166,19 +214,5 @@ test("custom instructions fall back to a foreground compaction", async () => {
 	};
 	const result = await handlers.get("session_before_compact")(event, makeCtx());
 	assert.match(result.compaction.summary, /fg summary/);
-	assert.ok(lastNotify(/^Compacting with test-provider\/test-model:high$/));
-});
-
-test("a stale branch falls back to a foreground compaction", async () => {
-	notifications.length = 0;
-	completion = okCompletion("fg summary 2");
-	const event = {
-		customInstructions: undefined,
-		branchEntries: [],
-		preparation: dummyPreparation(),
-		signal: AbortSignal.none,
-	};
-	const result = await handlers.get("session_before_compact")(event, makeCtx());
-	assert.match(result.compaction.summary, /fg summary 2/);
 	assert.ok(lastNotify(/^Compacting with test-provider\/test-model:high$/));
 });
