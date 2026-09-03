@@ -21,7 +21,7 @@
 
 ## Plan
 
-### 1788393081 — tsaokoming — glm-5p3-flash — max
+### 1788393081 — csrutil — glm-5p3-flash — max
 
 - `extensions/compact.ts`: guard missing `compaction` section with a clear
   error; destructure `enabled` out of the settings rest; early-return from
@@ -44,7 +44,7 @@
 
 ## Work Log
 
-### 1788393081 — tsaokoming — glm-5p3-flash — max
+### 1788393081 — csrutil — glm-5p3-flash — max
 
 Implemented the enabled gate, settings guard, and race guard in
 `extensions/compact.ts`; added the three test files and fixtures; updated
@@ -58,7 +58,7 @@ below).
 
 Checks: filled in after validation runs.
 
-### 1788397000 — tsaokoming — glm-5p3-flash — max
+### 1788397000 — csrutil — glm-5p3-flash — max
 
 Revision after review: the missing-section guard no longer throws. A throw
 during extension load interrupts the agent flow, so an unconfigured or
@@ -95,7 +95,7 @@ listed in the previous ablation study document that were not in scope here.
 
 ## Review
 
-### 1788397000 — tsaokoming — glm-5p3-flash — max
+### 1788397000 — csrutil — glm-5p3-flash — max
 
 Final review: implementation reviewed, checks passed, regressions checked,
 diff reviewed.
