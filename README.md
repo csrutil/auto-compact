@@ -2,6 +2,11 @@
 
 [![npm version](https://img.shields.io/npm/v/%40tsaokoming%2Fauto-compact)](https://www.npmjs.com/package/@tsaokoming/auto-compact)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/header/header-dark.svg">
+  <img src="docs/header/header-light.svg" width="960" alt="Animated drawing of auto-compact as a machine. Cards stand for context entries in a trough with a percent ruler. At 80%, a gantry reads the older cards and a press makes one summary card while new cards keep arriving. When the turn ends, the summary replaces the old cards and the most recent cards stay.">
+</picture>
+
 A [Pi package](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
 that prepares compaction in the background with a dedicated model. If Pi needs
 to compact and the prepared result still applies to the active branch, the
